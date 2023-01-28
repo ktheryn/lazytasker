@@ -1,12 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:date_time_picker/date_time_picker.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/data/latest.dart' as tz;
-import 'package:timezone/timezone.dart' as tz;
-import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:lazytasker/tasker_bloc.dart';
+import 'package:lazytasker/tasker_notification.dart';
+import 'package:uuid/uuid.dart';
+import 'model.dart';
 
 class TaskScreen extends StatefulWidget {
   late String payload;
@@ -18,97 +17,14 @@ class TaskScreen extends StatefulWidget {
 }
 
 class _TaskScreenState extends State<TaskScreen> {
-  List<String> tasks = [];
-  final TextEditingController textFieldController = TextEditingController();
-  bool isChanged = false;
-  List<bool> isChangedList =
-  []; //TODO 1: created a list to check if boxes are checked
+
+  final TextEditingController textFieldTaskName = TextEditingController();
   String timer = '';
-  List<String> timerlist = [];
-  int timeDiffInSeconds = 0;
-  late FlutterLocalNotificationsPlugin fltrNotification;
-
-  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-  FlutterLocalNotificationsPlugin();
-
-  saveStringToSF(List<String> value) async {
-    print("Task List : $value");
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setStringList('stringValue', value);
-  }
-
-  Future<List<String>?> getStringValuesSF() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getStringList('stringValue');
-  }
-
-  saveDateToSF(List<String> value2) async {
-    print("Date List : $value2");
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setStringList('dateValue', value2);
-  }
-
-  Future<List<String>?> getDateValuesSF() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getStringList('dateValue');
-  }
-
-  saveBoolToSF(String value3) async {
-    print("bool List : $value3");
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString('boolValue', value3);
-  }
-
-  Future<String?> getBoolValuesSF() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getString('boolValue');
-  }
-
-
-  @override
-  void initState() {
-    super.initState();
-    tz.initializeTimeZones();
-    const AndroidInitializationSettings initializationSettingsAndroid =
-    AndroidInitializationSettings('icons');
-    final InitializationSettings initializationSettings =
-    InitializationSettings(
-        android: initializationSettingsAndroid, iOS: null, macOS: null);
-    flutterLocalNotificationsPlugin.initialize(initializationSettings,
-        onSelectNotification: selectNotification);
-
-    getStringValuesSF().then((value) {
-      setState(() {
-        tasks = value!;
-      });
-    });
-
-    getDateValuesSF().then((timer) {
-      setState(() {
-        timerlist = timer!;
-      });
-    });
-
-    getBoolValuesSF().then((value) {
-      var resultHere = json.decode(
-          value!); //converts String stored as "[false,true,false]" to bool dynamic (not fixed size list)list
-      setState(() {
-        isChangedList = resultHere.cast<
-            bool>(); //converts dynamic list to bool list and assigns to isChangedList
-      });
-    });
-  }
-
-  Future selectNotification(payload) async {
-    if (payload != null) {
-      debugPrint('notification payload: $payload');
-    }
-    //await Navigator.push(context, MaterialPageRoute<void>(builder: (context) => TaskScreen(payload)),);
-    await Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => TaskScreen(payload)), (Route<dynamic> route) => false);
-  }
 
   @override
   Widget build(BuildContext context) {
+    WidgetsFlutterBinding.ensureInitialized();
+    NotifyHelper().initializeNotification(context);
     return Scaffold(
       resizeToAvoidBottomInset: false,
       extendBody: true,
@@ -124,62 +40,63 @@ class _TaskScreenState extends State<TaskScreen> {
         },
         child: Icon(Icons.add),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              children: getItems(),
-            ),
-          ),
-        ],
+      body: BlocBuilder<TaskerBloc, TaskerState>(
+        builder: (context, state) {
+          if (state is TaskerInitial) {
+            return Center(
+                child: const CircularProgressIndicator(
+              color: Color(0xFF00ac9c),
+            ));
+          }
+          if (state is TaskerLoaded) {
+            return Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: state.tasks.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      Task taskers = state.tasks[index];
+                      return Card(
+                        child: CheckboxListTile(
+                            activeColor: Color(0xFF472b29),
+                            title: Text(
+                              state.tasks[index].taskName,
+                              style: TextStyle(
+                                  color: Color(0xFF472b29),
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Text(state.tasks[index].date),
+                            secondary:
+                                IconButton(onPressed: () {
+                                  context
+                                      .read<TaskerBloc>()
+                                      .add(removeTaskEvent(task: taskers));
+                                },
+                                    icon: Icon(Icons.delete_forever)),
+                            controlAffinity: ListTileControlAffinity.leading,
+                            value: state.tasks[index].isCheck == 'false'
+                                ? false
+                                : true,
+                            onChanged: (newValue) async {
+                              context.read<TaskerBloc>().add(clickCheckBox(task: taskers));
+                            }),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          }
+          if (state is TaskerError) {
+            return Center(child: Text('Something went wrong'));
+          }
+          return Container();
+        },
       ),
     );
   }
 
-  void addtolist(String value) {
-    setState(() {
-      print(DateTime.parse(timer).toLocal());
-      tasks.add(value);
-      timerlist.add(timer);
-      isChangedList.add(
-          false); //TODO 2: Assign false as default value when each task is added
-    });
-  }
-
-  void deletetasks(int pos) {
-    setState(() {
-      tasks.removeAt(pos);
-      timerlist.removeAt(pos);
-      isChangedList.removeAt(pos);
-      flutterLocalNotificationsPlugin.cancel(pos);
-    });
-  }
-
-  Future<void> scheduleNotification() async {
-    var scheduledNotificationDateTime =
-    DateTime.now().add(Duration(seconds: 5));
-    var androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      '0',
-      'channel name',
-      'channel description',
-      icon: 'flutter_devs',
-      largeIcon:
-      DrawableResourceAndroidBitmap('icons'),
-    );
-    var iOSPlatformChannelSpecifics = IOSNotificationDetails();
-    var platformChannelSpecifics = NotificationDetails(
-        android: androidPlatformChannelSpecifics,
-        iOS: iOSPlatformChannelSpecifics);
-
-    await flutterLocalNotificationsPlugin.schedule(
-        0,
-        'scheduled title',
-        'scheduled body',
-        scheduledNotificationDateTime,
-        platformChannelSpecifics);
-  }
-
-  Future<BottomSheet> buttomBar(BuildContext context) async {
+  Future<void> buttomBar(BuildContext context) async {
     return await showModalBottomSheet(
         backgroundColor: Colors.transparent,
         context: context,
@@ -199,7 +116,7 @@ class _TaskScreenState extends State<TaskScreen> {
                   padding: EdgeInsets.all(20),
                   child: TextField(
                     cursorColor: Color(0xFF472b29),
-                    controller: textFieldController,
+                    controller: textFieldTaskName,
                     decoration: InputDecoration(
                         hintText: 'Enter Task Here',
                         focusColor: Color(0xFF472b29),
@@ -208,11 +125,11 @@ class _TaskScreenState extends State<TaskScreen> {
                         border: InputBorder.none,
                         focusedBorder: OutlineInputBorder(
                           borderSide:
-                          BorderSide(color: Color(0xFF472b29), width: 2),
+                              BorderSide(color: Color(0xFF472b29), width: 2),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderSide:
-                          BorderSide(color: Color(0xFF472b29), width: 2),
+                              BorderSide(color: Color(0xFF472b29), width: 2),
                         ),
                         labelText: 'Add Tasks',
                         labelStyle: TextStyle(
@@ -230,22 +147,18 @@ class _TaskScreenState extends State<TaskScreen> {
                     dateMask: 'd MMM, yyyy',
                     initialValue: '', //Set to empty
                     //initialValue: DateTime.now().toString(),
-                    style: TextStyle(color: Color(0xFF00ac9c),),
+                    style: TextStyle(
+                      color: Color(0xFF00ac9c),
+                    ),
                     firstDate: DateTime(2000),
                     lastDate: DateTime(2100),
                     icon: Icon(Icons.event),
-
                     dateLabelText: 'Date',
                     timeLabelText: "Hour",
                     onChanged: (val) {
-                      print(val);
                       timer = val.toString();
                     },
-                    //(val) => timer = val.toString(), //Just converted val to string
-                    //also timer needs to be a list same as tasks and isChanged
-
                     validator: (val) {
-                      print(val);
                       return null;
                     },
                     onSaved: (val) => timer = val.toString(),
@@ -263,40 +176,16 @@ class _TaskScreenState extends State<TaskScreen> {
                       ),
                       child: Text('Add'),
                       onPressed: () {
-                        if (textFieldController.text == "") {
-                          //TODO: Added a if case to check if field is empty before adding
-                          print("empty");
+                        if (textFieldTaskName.text == "") {
+
                         } else {
-                          print("inside Adding block");
-                          print("Now time");
-                          print(DateTime.now()); //current
-                          print("Entered");
-                          print(DateFormat("yyyy-MM-dd HH:mm")
-                              .parse(timer, false));
-                          print("Diff");
-                          print((DateFormat("yyyy-MM-dd HH:mm")
-                              .parse(timer, false))
-                              .difference(DateTime.now())
-                              .inSeconds);
-                          DateTime date1 = DateTime.now(),
-                              date2 = DateFormat("yyyy-MM-dd HH:mm")
-                                  .parse(timer, false);
-                          timeDiffInSeconds =
-                              (date2).difference(date1).inSeconds;
-                          print("Task length :");
-                          print(tasks.length);
-                          showNotification(
-                              timeDiffInSeconds,
-                              tasks.length,
-                              textFieldController
-                                  .text, timer.toString()); //pass the seconds here and id assigned will be the serial number of current task
-                          //scheduleNotification();
-                          addtolist(textFieldController.text);
-                          saveStringToSF(tasks);
-                          saveDateToSF(timerlist);
-                          saveBoolToSF(isChangedList.toString());
+                          context.read<TaskerBloc>().add(addTaskEvent(
+                              task: Task(
+                                  id: Uuid().v4().toString(),
+                                  taskName: textFieldTaskName.text,
+                                  date: timer,
+                                  isCheck: 'false')));
                           Navigator.of(context).pop();
-                          textFieldController.clear();
                         }
                       },
                     ),
@@ -317,61 +206,5 @@ class _TaskScreenState extends State<TaskScreen> {
             ),
           );
         });
-  }
-
-  Widget buildTodoItem(String title, int pos, String timer) {
-    return GestureDetector(
-      onLongPressStart: (details) {
-        deletetasks(pos);
-        saveStringToSF(tasks);
-        saveDateToSF(timerlist);
-        saveBoolToSF(isChangedList.toString());
-      },
-      child: CheckboxListTile(
-          activeColor: Color(0xFF472b29),
-          title: Text(title,style: TextStyle(color: Color(0xFF472b29),fontWeight: FontWeight.bold),),
-          subtitle: Text(timer),
-          controlAffinity: ListTileControlAffinity.leading,
-          //value: isChanged,
-          value: isChangedList[pos], //TODO 3A: changed to list variable
-          onChanged: (newValue) {
-            setState(() {
-              isChangedList[pos] =
-              !isChangedList[pos];
-              saveBoolToSF(isChangedList.toString());//TODO 3B: changed to list variable
-            });
-          }),
-    );
-  }
-
-  List<Widget> getItems() {
-    final List<Widget> todoWidgetsy = <Widget>[];
-    for (int i = 0; i < tasks.length; i++) {
-      todoWidgetsy.add(buildTodoItem(
-          tasks[i], i, timerlist[i])); //TODO 4: Passing position as i
-    }
-    return todoWidgetsy;
-  }
-
-  showNotification(int secondsToBeAdded, int idValue, String titleValue, String dateValue) async {
-    double minutesToPrint = 0;
-    var android = new AndroidNotificationDetails(
-        'id', 'channel ', 'description',
-        priority: Priority.high, importance: Importance.max);
-    var platform = new NotificationDetails(android: android);
-    await flutterLocalNotificationsPlugin.zonedSchedule(
-        idValue,
-        titleValue,
-        dateValue,
-        tz.TZDateTime.now(tz.local).add(Duration(seconds: (secondsToBeAdded))),
-        const NotificationDetails(
-            android: AndroidNotificationDetails('your channel id',
-                'your channel name', 'your channel description')),
-        androidAllowWhileIdle: true,
-        uiLocalNotificationDateInterpretation:
-        UILocalNotificationDateInterpretation.absoluteTime);
-    minutesToPrint = secondsToBeAdded / 60;
-    print(
-        "Notification scheduled for $minutesToPrint minutes or $secondsToBeAdded seconds from now.");
   }
 }
