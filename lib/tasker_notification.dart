@@ -30,7 +30,7 @@ class NotifyHelper {
         });
   }
 
-  Future<void> _configureLocalTimeZone() async{
+  Future<void> _configureLocalTimeZone() async {
     tz.initializeTimeZones();
     final String timeZone = await FlutterNativeTimezone.getLocalTimezone();
     tz.setLocalLocation(tz.getLocation(timeZone));
@@ -69,6 +69,8 @@ class NotifyHelper {
     minutesToPrint = timediffInseconds / 60;
     print("Notification scheduled for $minutesToPrint minutes or $timediffInseconds seconds from now.");
   }
+
+
 
 
 }

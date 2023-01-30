@@ -4,27 +4,27 @@ import 'package:uuid/uuid.dart';
 class Task extends Equatable {
   final String taskName;
   final String date;
-  final String isCheck;
+  final String isMarkCompleted;
   final String id;
 
   Task(
       {required this.taskName,
       required this.date,
-      required this.isCheck,
+      required this.isMarkCompleted,
       required this.id});
 
   Task.fromMap(Map<String, dynamic> result)
       : id = result["id"],
         taskName = result["taskName"],
         date = result["taskDate"],
-        isCheck = result["isCheck"];
+        isMarkCompleted = result["isCheck"];
 
   Map<String, Object> toMap() {
     return {
       'id': id,
       'taskName': taskName,
       'taskDate': date,
-      'isCheck': isCheck,
+      'isCheck': isMarkCompleted,
     };
   }
 
@@ -37,7 +37,7 @@ class Task extends Equatable {
     return Task(
         taskName: taskName ?? this.taskName,
         date: date ?? this.date,
-        isCheck: isCheck ?? this.isCheck,
+        isMarkCompleted: isCheck ?? this.isMarkCompleted,
         id: id ?? this.id);
   }
 
@@ -45,14 +45,14 @@ class Task extends Equatable {
 
   @override
   // TODO: implement props
-  List<Object?> get props => [taskName, date, isCheck];
+  List<Object?> get props => [taskName, date, isMarkCompleted];
 
   static List<Task> tasks = [
     Task(
       id: Uuid().v4().toString(),
       taskName: 'Sample Task ',
       date: '2023-01-24 06:43',
-      isCheck: 'false',
+      isMarkCompleted: 'false',
     ),
   ];
 }

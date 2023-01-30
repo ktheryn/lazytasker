@@ -21,24 +21,22 @@ class TaskerBloc extends Bloc<TaskerEvent, TaskerState> {
       }
     });
 
-    on<addTaskEvent>((event, emit) {
+    on<addTaskEvent>((event, emit) async {
       if (state is TaskerLoaded) {
         final state = this.state as TaskerLoaded;
         List<Task> tasker = [];
         tasker.add(event.task);
-        _taskerRepository.insertTask(tasker);
         NotifyHelper().showNotification(state.tasks.length, event.task.taskName, event.task.date);
+        await _taskerRepository.insertTask(tasker);
         emit(TaskerLoaded(tasks: List.from(state.tasks)..add(event.task)));
       }
     });
 
-    on<removeTaskEvent>((event, emit) {
+    on<removeTaskEvent>((event, emit) async {
       if (state is TaskerLoaded) {
         final state = this.state as TaskerLoaded;
-        List<Task> tasker = [];
-        tasker.add(event.task);
-        final int index = state.tasks.indexOf(event.task);
-        _taskerRepository.deleteTask(tasker[index].id);
+       //final int index = state.tasks.indexOf(event.task);
+        await _taskerRepository.deleteTask(event.task.id);
         emit(TaskerLoaded(tasks: List.from(state.tasks)..remove(event.task)));
       }
     });
@@ -50,9 +48,17 @@ class TaskerBloc extends Bloc<TaskerEvent, TaskerState> {
         final int index = state.tasks.indexOf(task);
 
         List<Task> allTasks = List.from(state.tasks)..remove(task);
-        task.isCheck == 'false' ? allTasks.insert(index, task.copyWith(isCheck: 'true')) :
+        task.isMarkCompleted == 'false' ? allTasks.insert(index, task.copyWith(isCheck: 'true')) :
         allTasks.insert(index, task.copyWith(isCheck: 'false'));
         emit(TaskerLoaded(tasks: allTasks));
+      }
+    });
+
+    on<saveCheckBox>((event, emit) async {
+      if (state is TaskerLoaded) {
+        final state = this.state as TaskerLoaded;
+        final task = event.task;
+        await _taskerRepository.updateTask(state.tasks, task.id);
       }
     });
 

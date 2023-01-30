@@ -40,4 +40,20 @@ class TaskerRepository {
       whereArgs: [id],
     );
   }
+
+  Future<void> updateTask(List<Task> tasks, String id) async {
+    final db = await initializedDB();
+    for (var task in tasks) {
+      await db.update('tasks', task.toMap(),
+          where: "id = ?", whereArgs: [task.id]);
+    }
+  }
+
+
+
+
+
+
+
+
 }

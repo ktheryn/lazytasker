@@ -37,6 +37,14 @@ class clickCheckBox extends TaskerEvent {
   List<Object?> get props => [task];
 }
 
+class saveCheckBox extends TaskerEvent {
+  final Task task;
+  const saveCheckBox({required this.task});
+
+  @override
+  List<Object?> get props => [task];
+}
+
 
 
 

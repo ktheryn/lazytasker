@@ -10,7 +10,7 @@ import 'model.dart';
 class TaskScreen extends StatefulWidget {
   late String payload;
 
-  TaskScreen(payload, {String});
+  TaskScreen(payload, {Key? key, String}) : super(key: key);
 
   @override
   _TaskScreenState createState() => _TaskScreenState();
@@ -68,17 +68,16 @@ class _TaskScreenState extends State<TaskScreen> {
                             subtitle: Text(state.tasks[index].date),
                             secondary:
                                 IconButton(onPressed: () {
-                                  context
-                                      .read<TaskerBloc>()
-                                      .add(removeTaskEvent(task: taskers));
+                                  context.read<TaskerBloc>().add(removeTaskEvent(task: taskers));
                                 },
                                     icon: Icon(Icons.delete_forever)),
                             controlAffinity: ListTileControlAffinity.leading,
-                            value: state.tasks[index].isCheck == 'false'
+                            value: state.tasks[index].isMarkCompleted == 'false'
                                 ? false
                                 : true,
                             onChanged: (newValue) async {
                               context.read<TaskerBloc>().add(clickCheckBox(task: taskers));
+                              context.read<TaskerBloc>().add(saveCheckBox(task: taskers));
                             }),
                       );
                     },
@@ -184,7 +183,7 @@ class _TaskScreenState extends State<TaskScreen> {
                                   id: Uuid().v4().toString(),
                                   taskName: textFieldTaskName.text,
                                   date: timer,
-                                  isCheck: 'false')));
+                                  isMarkCompleted: 'false')));
                           Navigator.of(context).pop();
                         }
                       },
