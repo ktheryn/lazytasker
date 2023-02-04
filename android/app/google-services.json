@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "421164555776",
+    "project_id": "tasker-25d1c",
+    "storage_bucket": "tasker-25d1c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:421164555776:android:f593562f9e212cf80782e5",
+        "android_client_info": {
+          "package_name": "com.snickerdoodle.lazytasker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "421164555776-f3g7rcv06ru7s70v336sb5mhcdi0rnep.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBY0n_rrPFqq6-kt88HFDgi6qvkePuLNSo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "421164555776-22c3vbph0dq8la9rl33r2bfof0thltj5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,9 +1,9 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:lazytasker/tasker_notification.dart';
-import 'package:lazytasker/tasker_repository.dart';
+import 'package:lazytasker/tasking/services/tasker_notification.dart';
+import 'package:lazytasker/tasking/services/tasker_repository.dart';
 import 'package:meta/meta.dart';
-import 'model.dart';
+import '../model/model.dart';
 part 'tasker_event.dart';
 part 'tasker_state.dart';
 
@@ -26,7 +26,7 @@ class TaskerBloc extends Bloc<TaskerEvent, TaskerState> {
         final state = this.state as TaskerLoaded;
         List<Task> tasker = [];
         tasker.add(event.task);
-        NotifyHelper().showNotification(state.tasks.length, event.task.taskName, event.task.date);
+        NotifyHelper().showNotification(state.tasks.length, event.task.taskName, event.task.taskDate);
         await _taskerRepository.insertTask(tasker);
         emit(TaskerLoaded(tasks: List.from(state.tasks)..add(event.task)));
       }
@@ -61,13 +61,6 @@ class TaskerBloc extends Bloc<TaskerEvent, TaskerState> {
         await _taskerRepository.updateTask(state.tasks, task.id);
       }
     });
-
-
-
-
-
-
-
   }
 
 }

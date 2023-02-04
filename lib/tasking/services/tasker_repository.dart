@@ -1,6 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'model.dart';
+import '../model/model.dart';
 
 class TaskerRepository {
   Future<Database> initializedDB() async {
