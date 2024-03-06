@@ -1,5 +1,3 @@
-# lazytasker
-
 # What is Tasker? 
 
 Tasker is a simple ToDo List app develop using flutter for helping users to schedule different tasks. It is built in order to help you manage your day-to-day activities.
